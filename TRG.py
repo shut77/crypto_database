@@ -1,6 +1,10 @@
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
-import sqlite3
+from PyQt5.QtWidgets import QApplication, QMessageBox, QDialog
+#import sqlite3
+import psycopg2
+from config import host, user, password, db_name
+
 
 # Класс для диалогового окна успеха
 class SuccessDialog(QtWidgets.QMessageBox):
@@ -142,7 +146,7 @@ class Ui_MainWindow(object):
         self.pic1.setGeometry(
             QtCore.QRect(int(MainWindow.width() * 0.8), 0, int(MainWindow.width() * 0.2), int(MainWindow.height())))
         self.pic1.setText("")
-        self.pic1.setPixmap(QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
+        self.pic1.setPixmap(QtGui.QPixmap("C://Users//Artem//Downloads//shap.jpg"))
         self.pic1.setScaledContents(True)
         self.pic1.setObjectName("pic1")
 
@@ -187,7 +191,7 @@ class Ui_MainWindow(object):
         self.pic1_reg.setGeometry(
             QtCore.QRect(int(MainWindow.width() * 0.8), 0, int(MainWindow.width() * 0.2), int(MainWindow.height())))
         self.pic1_reg.setText("")
-        self.pic1_reg.setPixmap(QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
+        self.pic1_reg.setPixmap(QtGui.QPixmap("C://Users//Artem//Downloads//shap.jpg"))
         self.pic1_reg.setScaledContents(True)
         self.pic1_reg.setObjectName("pic1_reg")
 
@@ -241,7 +245,7 @@ class Ui_MainWindow(object):
             QtCore.QRect(int(MainWindow.width() * 0.8), 0, int(MainWindow.width() * 0.2), int(MainWindow.height())))
         self.pic1_profile.setText("")
         self.pic1_profile.setPixmap(
-            QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
+            QtGui.QPixmap("C://Users//Artem//Downloads//shap.jpg"))
         self.pic1_profile.setScaledContents(True)
         self.pic1_profile.setObjectName("pic1_profile")
 
@@ -290,37 +294,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-
-        # Подключение базы данных
-        self.conn = sqlite3.connect("users.db")
-        self.cursor = self.conn.cursor()
-
-        # Создание таблицы пользователей
-        self.cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL,
-                password TEXT NOT NULL,
-                balance REAL DEFAULT 0.0
+        # Подключение базы данных PostgreSQL
+        try:
+            self.conn = psycopg2.connect(
+                host=host,
+                user=user,
+                password=password,
+                database=db_name
             )
-        """)
+            self.cursor = self.conn.cursor()
 
-        # Создание таблицы монет
-        self.cursor.execute("""
-            CREATE TABLE IF NOT EXISTS coins (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                price REAL NOT NULL
-            )
-        """)
+        except Exception as e:
+            print(f"Ошибка подключения к базе данных: {e}")
 
-        # Добавление трех монет, если таблица пуста
-        self.cursor.execute("SELECT COUNT(*) FROM coins")
-        if self.cursor.fetchone()[0] == 0:
-            self.cursor.execute("INSERT INTO coins (name, price) VALUES ('Bitcoin', 50000.0)")
-            self.cursor.execute("INSERT INTO coins (name, price) VALUES ('Ethereum', 4000.0)")
-            self.cursor.execute("INSERT INTO coins (name, price) VALUES ('Litecoin', 200.0)")
-            self.conn.commit()
 
         # Подключение обработчиков событий
         self.reg_button.clicked.connect(self.show_registration_page)
@@ -359,11 +345,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not username or not password:
             error_dialog = ErrorDialog(self,2)
             error_dialog.exec_()
+
             return
 
         try:
             # Добавление пользователя в базу данных
-            self.cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+            self.cursor.execute("""
+                    INSERT INTO users (real_wallet_adress, demo_wallet_adress, ton_usdt, obt_usdt, plume_usdt, balance, username, password)
+                    VALUES (NULL, NULL, 0, 0, 0, 0, %s, %s)
+                    RETURNING id_users
+                """, (username, password))
+            new_user_id = self.cursor.fetchone()[0]  # Получаем ID нового пользователя
+
+            print(f"Новый пользователь добавлен с ID: {new_user_id}")
             self.conn.commit()
 
             # Вывод содержимого базы данных
@@ -398,9 +392,18 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             self.show_main_page()
 
         except Exception as e:
-            QtWidgets.QMessageBox.critical(self, "Ошибка", f"Произошла ошибка: {str(e)}")
-            self.username_input.clear()
-            self.password_input.clear()
+            # Показать диалог ошибки
+            error_dialog = QMessageBox()
+            error_dialog.setStyleSheet("background-color: white; color: black;")
+            error_dialog.setIcon(QMessageBox.critical(self, "Ошибка", f"Произошла ошибка: {str(e)}"))
+            error_dialog.setWindowTitle("Ошибка")
+            error_dialog.setText("Произошла ошибка при регистрации!")
+            error_dialog.setStyleSheet("background-color: white; color: black;")
+            error_dialog.exec_()
+
+            #QtWidgets.QMessageBox.critical(self, "Ошибка", f"Произошла ошибка: {str(e)}")
+            #self.username_input.clear()
+            #self.password_input.clear()
 
     def login_user(self):
         """Логика входа пользователя"""
@@ -457,31 +460,53 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
             try:
                 # Проверка существования пользователя
-                self.cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
+                self.cursor.execute("SELECT username, password, balance FROM users WHERE username = %s AND password = %s", (username, password))
                 user = self.cursor.fetchone()
 
-                if not user:
+                if user is None:
                     QtWidgets.QMessageBox.critical(self, "Ошибка", "Неверное имя пользователя или пароль!")
                     return
 
                 # Сохраняем текущего пользователя
+                #username, password = user
                 self.current_user = user
 
                 # Переход на страницу профиля
                 self.stackedWidget.setCurrentIndex(2)
 
                 # Отображение приветственного сообщения и баланса
-                self.welcome_message.setText(f"Привет, {user[1]}!")
-                self.balance_label.setText(f"Ваш баланс: {user[3]}")
+                self.welcome_message.setText(f"Привет, {user[0]}!")
+                self.balance_label.setText(f"Ваш баланс: {user[2]}")
+
+                self.cursor.execute("""
+                SELECT ton_usdt, obt_usdt, plume_usdt from users
+                """, (user[0],))
+                user_coins = self.cursor.fetchall()
+                if user_coins:
+                    coins_text = "Ваши монеты:\n"
+                    for coin in user_coins:
+                        coins_text += f"{coin[0]}: {coin[1]}\n"
+                else:
+                    coins_text = "У вас пока нет монет."
+
+                self.coins_label = QtWidgets.QLabel(self.frame_profile)
+                self.coins_label.setGeometry(QtCore.QRect(500, 200, int(self.width() * 0.6), 400))
+                self.coins_label.setStyleSheet("color: white; font-size: 16px;")
+                self.coins_label.setText(coins_text)
+                self.coins_label.show()
+
 
             except Exception as e:
+
+                print(f"Ошибка при выполнении запроса: {e}")
+
                 QtWidgets.QMessageBox.critical(self, "Ошибка", f"Произошла ошибка: {str(e)}")
 
     def buy_coin(self):
         """Логика покупки монеты"""
         try:
             # Получаем список монет из базы данных
-            self.cursor.execute("SELECT * FROM coins")
+            self.cursor.execute("SELECT id, short_name, current_price FROM all_token")
             coins = self.cursor.fetchall()
 
             if not coins:
@@ -532,11 +557,19 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
                 # Обновляем баланс пользователя
                 new_balance = self.current_user[3] - selected_coin[2]
-                self.cursor.execute("UPDATE users SET balance = ? WHERE id = ?", (new_balance, self.current_user[0]))
+                self.cursor.execute("UPDATE users SET balance = %s WHERE id = %s", (new_balance, self.current_user[0]))
                 self.conn.commit()
 
                 # Обновляем отображение баланса
                 self.balance_label.setText(f"Ваш баланс: {new_balance}")
+
+                self.cursor.execute("""
+                                    INSERT INTO users (id, short_name, ton_usdt)
+                                    VALUES (%s, %s, 1)
+                                    ON CONFLICT (user_id, coin_id) DO UPDATE
+                                    SET ton_usdt = users.ton_usdt + 1
+                                """, (self.current_user[0], selected_coin[0]))
+                self.conn.commit()
 
                 # Показываем сообщение об успешной покупке
                 success_dialog = SuccessDialog(self)
