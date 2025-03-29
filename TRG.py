@@ -241,7 +241,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(page)
         layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignHCenter)
         layout.setSpacing(30)
-        layout.setContentsMargins(50, 50, 50, 50)
+        layout.setContentsMargins(100, 50, 100, 50)
 
         # Приветствие
         self.welcome_label = QLabel()
@@ -285,20 +285,29 @@ class MainWindow(QMainWindow):
         self.assets_table = QTableWidget()
         self.assets_table.setColumnCount(3)
         self.assets_table.setHorizontalHeaderLabels(["Монета", "Количество", "Действия"])
-        self.assets_table.horizontalHeader().setStyleSheet("font-size: 18px;")
+        self.assets_table.horizontalHeader().setStyleSheet("""
+            QHeaderView::section {
+                font-size: 50px;
+                padding: 10px;
+                background-color: #444;
+            }
+        """)
         self.assets_table.verticalHeader().setVisible(False)
         self.assets_table.setStyleSheet("""
             QTableWidget {
                 background-color: #333;
                 color: white;
-                font-size: 16px;
+                font-size: 50px;
                 border: 1px solid #444;
                 gridline-color: #444;
+                margin: 50px;
             }
             QTableWidget::item {
                 padding: 10px;
             }
         """)
+
+
         layout.addWidget(self.assets_table)
 
         # Кнопки действий
@@ -327,7 +336,7 @@ class MainWindow(QMainWindow):
             QPushButton {
                 background-color: #f44336;
                 color: white;
-                font-size: 18px;
+                font-size: 26px;
                 padding: 15px;
                 min-width: 150px;
                 border-radius: 5px;
@@ -344,7 +353,7 @@ class MainWindow(QMainWindow):
             QPushButton {
                 background-color: #ff9800;
                 color: black;
-                font-size: 18px;
+                font-size: 40px;
                 padding: 15px;
                 min-width: 150px;
                 border-radius: 5px;
@@ -356,9 +365,131 @@ class MainWindow(QMainWindow):
         self.logout_btn.clicked.connect(self.show_main_page)
         action_layout.addWidget(self.logout_btn)
 
+        # Установка размеров столбцов
+        self.assets_table.setColumnWidth(0, 500)
+        self.assets_table.setColumnWidth(1, 600)
+        self.assets_table.setColumnWidth(2, 350)
+
         layout.addLayout(action_layout)
 
         self.stacked_widget.addWidget(page)
+
+        self.main_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.main_splitter.addWidget(self.assets_table)
+
+        # Создаем панель с информацией о монете
+        self.coin_info_panel = QtWidgets.QWidget()
+        self.coin_info_layout = QVBoxLayout(self.coin_info_panel)
+
+        # Заголовок панели
+        self.coin_info_label = QLabel("Информация о монете")
+        self.coin_info_label.setStyleSheet("""
+                font-size: 36px;
+                font-weight: bold;
+                color: orange;
+                margin-bottom: 20px;
+            """)
+        self.coin_info_layout.addWidget(self.coin_info_label)
+
+        # Поле для отображения информации
+        self.coin_info_text = QtWidgets.QTextBrowser()
+        self.coin_info_text.setStyleSheet("""
+                font-size: 36px;
+                background-color: #333;
+                padding: 15px;
+                border: 1px solid #444;
+            """)
+        self.coin_info_text.setMinimumHeight(700)  # Минимальная высота
+        self.coin_info_layout.addWidget(self.coin_info_text)
+
+        # Добавляем панель в сплиттер
+        self.main_splitter.addWidget(self.coin_info_panel)
+        layout.addWidget(self.main_splitter)
+
+        # Подключаем обработчик клика по названию монеты
+        self.assets_table.cellClicked.connect(self.show_coin_info)
+
+    def show_coin_info(self, row, column):
+        if column != 0:  # Только при клике на первый столбец (название монеты)
+            return
+
+        # Получаем символ монеты
+        coin_symbol = self.assets_table.item(row, 0).text()
+
+        try:
+            # Получаем информацию о монете из all_token
+            self.cursor.execute("""
+                    SELECT name, date_launched, platform, website, description 
+                    FROM all_token 
+                    WHERE symbol = %s
+                """, (coin_symbol,))
+            coin_info = self.cursor.fetchone()
+
+            if not coin_info:
+                self.coin_info_text.setPlainText(f"Информация о {coin_symbol} не найдена")
+                return
+
+            name, date_launched, platform, website, description = coin_info
+
+            # Получаем данные о ценах и объемах за последние 10 часов
+            self.cursor.execute("""
+                    SELECT hp.timestamp, hp.close, hp.volume
+                    FROM historical_prices hp
+                    JOIN all_token at ON hp.token_id = at.id
+                    WHERE at.symbol = %s
+                    ORDER BY hp.timestamp DESC
+                    LIMIT 2
+                """, (coin_symbol,))
+            price_data = self.cursor.fetchall()
+
+            # Формируем текст с информацией
+            info_text = f"""
+                <h2>{name} ({coin_symbol})</h2>
+                <p><b>Дата запуска:</b> {date_launched.strftime('%Y-%m-%d') if date_launched else 'Неизвестно'}</p>
+                <p><b>Платформа:</b> {platform or 'Неизвестно'}</p>
+                <p><b>Вебсайт:</b> <a href="{website or '#'}">{website or 'Недоступен'}</a></p>
+                <p><b>Описание:</b> {description or 'Нет описания'}</p>
+                """
+
+            # Добавляем информацию о ценах и объемах
+            if len(price_data) >= 2:
+                current = price_data[0]
+                previous = price_data[1]
+
+                price_change = current[1] - previous[1]
+                price_pct = (price_change / previous[1]) * 100 if previous[1] != 0 else 0
+                price_direction = "↑" if price_change >= 0 else "↓"
+                price_color = "green" if price_change >= 0 else "red"
+
+                volume_change = current[2] - previous[2]
+                volume_pct = (volume_change / previous[2]) * 100 if previous[2] != 0 else 0
+                volume_direction = "↑" if volume_change >= 0 else "↓"
+                volume_color = "green" if volume_change >= 0 else "red"
+
+                info_text += f"""
+                    <h3>Изменения за последние 10 часов:</h3>
+                    <p><b>Текущая цена:</b> ${current[1]:.4f} 
+                    <span style="color:{price_color}">
+                        ({price_direction}${abs(price_change):.4f}, {abs(price_pct):.2f}%)
+                    </span></p>
+                    <p><b>Объем торгов:</b> {current[2]:.2f} 
+                    <span style="color:{volume_color}">
+                        ({volume_direction}{abs(volume_change):.2f}, {abs(volume_pct):.2f}%)
+                    </span></p>
+                    """
+            elif price_data:
+                info_text += f"""
+                    <h3>Текущие данные:</h3>
+                    <p><b>Цена:</b> ${price_data[0][1]:.4f}</p>
+                    <p><b>Объем:</b> {price_data[0][2]:.2f}</p>
+                    """
+            else:
+                info_text += "<p>Нет данных о ценах</p>"
+
+            self.coin_info_text.setHtml(info_text)
+
+        except Exception as e:
+            self.coin_info_text.setPlainText(f"Ошибка при получении информации: {str(e)}")
 
     # Навигация
     def show_main_page(self):
@@ -469,6 +600,9 @@ class MainWindow(QMainWindow):
         if not self.current_user:
             return
 
+        self.assets_table.cellClicked.disconnect()  # Отключаем старые соединения
+        self.assets_table.cellClicked.connect(self.show_coin_info)
+
         self.welcome_label.setText(f"Добро пожаловать, {self.current_user['username']}!")
         self.balance_label.setText(f"Баланс: ${self.current_user['balance']:.2f}")
 
@@ -500,9 +634,9 @@ class MainWindow(QMainWindow):
                     QPushButton {
                         background-color: #f44336;
                         color: white;
-                        font-size: 14px;
-                        padding: 5px;
-                        min-width: 80px;
+                        font-size: 34px;
+                        padding: 1px;
+                        min-width: 90px;
                     }
                 """)
                 btn.clicked.connect(lambda _, c=coin: self.sell_coin(c))
@@ -549,7 +683,7 @@ class MainWindow(QMainWindow):
 
         # Выбор монеты
         coin_label = QLabel("Выберите монету:")
-        coin_label.setStyleSheet("font-size: 18px;")
+        coin_label.setStyleSheet("font-size: 38px;")
         layout.addWidget(coin_label)
 
         self.buy_coin_combo = QtWidgets.QComboBox()
@@ -563,13 +697,13 @@ class MainWindow(QMainWindow):
 
         # Количество
         amount_label = QLabel("Количество:")
-        amount_label.setStyleSheet("font-size: 18px;")
+        amount_label.setStyleSheet("font-size: 38px;")
         layout.addWidget(amount_label)
 
         self.buy_amount = QSpinBox()
         self.buy_amount.setMinimum(1)
         self.buy_amount.setMaximum(10000)
-        self.buy_amount.setStyleSheet("font-size: 18px;")
+        self.buy_amount.setStyleSheet("font-size: 38px;")
         layout.addWidget(self.buy_amount)
 
         # Кнопки
@@ -632,7 +766,7 @@ class MainWindow(QMainWindow):
 
         # Выбор монеты
         coin_label = QLabel("Выберите монету:")
-        coin_label.setStyleSheet("font-size: 18px;")
+        coin_label.setStyleSheet("font-size: 38px;")
         layout.addWidget(coin_label)
 
         self.sell_coin_combo = QtWidgets.QComboBox()
@@ -645,13 +779,13 @@ class MainWindow(QMainWindow):
 
         # Количество
         amount_label = QLabel("Количество:")
-        amount_label.setStyleSheet("font-size: 18px;")
+        amount_label.setStyleSheet("font-size: 38px;")
         layout.addWidget(amount_label)
 
         self.sell_amount = QSpinBox()
         self.sell_amount.setMinimum(1)
         self.sell_amount.setMaximum(int(self.current_user['coins'][self.sell_coin_combo.currentData()]))
-        self.sell_amount.setStyleSheet("font-size: 18px;")
+        self.sell_amount.setStyleSheet("font-size: 38px;")
         layout.addWidget(self.sell_amount)
 
         # Обновляем максимум при изменении выбранной монеты
@@ -746,7 +880,7 @@ if __name__ == "__main__":
         QWidget {
             background-color: #111;
             color: white;
-            font-size: 16px;
+            font-size: 26px;
         }
         QLineEdit {
             background-color: #333;
@@ -760,14 +894,14 @@ if __name__ == "__main__":
             color: white;
             border: 1px solid #444;
             padding: 8px;
-            font-size: 16px;
+            font-size: 26px;
         }
         QSpinBox {
             background-color: #333;
             color: white;
             border: 1px solid #444;
             padding: 8px;
-            font-size: 16px;
+            font-size: 26px;
         }
     """)
 
