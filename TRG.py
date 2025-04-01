@@ -95,10 +95,16 @@ class MainWindow(QMainWindow):
         self.stacked_widget.setCurrentIndex(0)
 
     def create_main_page(self):
+        # Создаём главный контейнер с горизонтальной компоновкой
         page = QtWidgets.QWidget()
-        layout = QVBoxLayout(page)
-        layout.setAlignment(QtCore.Qt.AlignCenter)
-        layout.setSpacing(30)
+        main_layout = QHBoxLayout(page)
+        main_layout.setContentsMargins(0, 0, 0, 0)  # Убираем отступы
+
+        # Левая часть (3/4) - основной контент
+        left_widget = QtWidgets.QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setAlignment(QtCore.Qt.AlignCenter)
+        left_layout.setSpacing(30)
 
         # Заголовок
         title = QLabel("TriGaDa Balance")
@@ -108,7 +114,7 @@ class MainWindow(QMainWindow):
             font-weight: bold;
             margin-bottom: 50px;
         """)
-        layout.addWidget(title, alignment=QtCore.Qt.AlignCenter)
+        left_layout.addWidget(title, alignment=QtCore.Qt.AlignCenter)
 
         # Кнопки
         buttons = [
@@ -134,32 +140,55 @@ class MainWindow(QMainWindow):
                 }}
             """)
             btn.clicked.connect(handler)
-            layout.addWidget(btn)
+            left_layout.addWidget(btn)
+
+        # Правая часть (1/4) - изображение
+        right_widget = QtWidgets.QLabel()
+        right_widget.setPixmap(QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
+        right_widget.setScaledContents(True)
+
+        # Распределяем пространство (3:1 соотношение)
+        main_layout.addWidget(left_widget, 3)  # 3/4 ширины
+        main_layout.addWidget(right_widget, 1)  # 1/4 ширины
 
         self.stacked_widget.addWidget(page)
 
     def create_login_page(self):
+        # Создаем главный контейнер с горизонтальной компоновкой
         page = QtWidgets.QWidget()
-        layout = QVBoxLayout(page)
-        layout.setAlignment(QtCore.Qt.AlignCenter)
-        layout.setSpacing(30)
+        main_layout = QHBoxLayout(page)
+        main_layout.setContentsMargins(0, 0, 0, 0)  # Убираем отступы
 
-        # Форма
+        # Левая часть (2/3) - форма входа
+        left_widget = QtWidgets.QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setAlignment(QtCore.Qt.AlignCenter)
+        left_layout.setSpacing(30)
+
+        # Форма входа
         form = QFormLayout()
         form.setSpacing(20)
 
         self.login_username = QLineEdit()
         self.login_username.setPlaceholderText("Имя пользователя")
-        self.login_username.setStyleSheet("font-size: 24px; padding: 15px;")
+        self.login_username.setStyleSheet("""
+            font-size: 24px; 
+            padding: 15px;
+            min-width: 300px;
+        """)
         form.addRow("Имя пользователя:", self.login_username)
 
         self.login_password = QLineEdit()
         self.login_password.setPlaceholderText("Пароль")
         self.login_password.setEchoMode(QLineEdit.Password)
-        self.login_password.setStyleSheet("font-size: 24px; padding: 15px;")
+        self.login_password.setStyleSheet("""
+            font-size: 24px; 
+            padding: 15px;
+            min-width: 300px;
+        """)
         form.addRow("Пароль:", self.login_password)
 
-        layout.addLayout(form)
+        left_layout.addLayout(form)
 
         # Кнопки
         btn_box = QDialogButtonBox()
@@ -180,35 +209,64 @@ class MainWindow(QMainWindow):
             padding: 15px;
             min-width: 200px;
         """)
+        def clear_fields():
+            self.login_username.clear()
+            self.login_password.clear()
+            self.show_main_page()
 
         btn_box.accepted.connect(self.handle_login)
-        btn_box.rejected.connect(self.show_main_page)
-        layout.addWidget(btn_box, alignment=QtCore.Qt.AlignCenter)
+        btn_box.rejected.connect(clear_fields)  # Теперь очищает поля перед переходом
+        left_layout.addWidget(btn_box, alignment=QtCore.Qt.AlignCenter)
+
+        # Правая часть (1/3) - изображение
+        right_widget = QtWidgets.QLabel()
+        right_widget.setPixmap(QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
+        right_widget.setScaledContents(True)
+
+        # Распределяем пространство
+        main_layout.addWidget(left_widget, 3)  # 2/3 ширины
+        main_layout.addWidget(right_widget, 1)  # 1/3 ширины
 
         self.stacked_widget.addWidget(page)
 
     def create_register_page(self):
+        # Создаём главный контейнер с горизонтальной компоновкой
         page = QtWidgets.QWidget()
-        layout = QVBoxLayout(page)
-        layout.setAlignment(QtCore.Qt.AlignCenter)
-        layout.setSpacing(30)
+        main_layout = QHBoxLayout(page)
+        main_layout.setContentsMargins(0, 0, 0, 0)  # Убираем отступы
 
-        # Форма
+        # Левая часть (3/4) - форма регистрации
+        left_widget = QtWidgets.QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setAlignment(QtCore.Qt.AlignCenter)
+        left_layout.setSpacing(30)
+
+        # Форма регистрации
         form = QFormLayout()
         form.setSpacing(20)
 
         self.reg_username = QLineEdit()
         self.reg_username.setPlaceholderText("Имя пользователя")
-        self.reg_username.setStyleSheet("font-size: 24px; padding: 15px;")
+        self.reg_username.setStyleSheet("""
+            font-size: 24px;
+            padding: 15px;
+            min-width: 300px;
+            max-width: 1100px;
+        """)
         form.addRow("Имя пользователя:", self.reg_username)
 
         self.reg_password = QLineEdit()
         self.reg_password.setPlaceholderText("Пароль")
         self.reg_password.setEchoMode(QLineEdit.Password)
-        self.reg_password.setStyleSheet("font-size: 24px; padding: 15px;")
+        self.reg_password.setStyleSheet("""
+            font-size: 24px;
+            padding: 15px;
+            min-width: 300px;
+            max-width: 1100px;
+        """)
         form.addRow("Пароль:", self.reg_password)
 
-        layout.addLayout(form)
+        left_layout.addLayout(form)
 
         # Кнопки
         btn_box = QDialogButtonBox()
@@ -230,9 +288,23 @@ class MainWindow(QMainWindow):
             min-width: 200px;
         """)
 
+        def clear_fields():
+            self.reg_username.clear()
+            self.reg_password.clear()
+            self.show_main_page()
+
         btn_box.accepted.connect(self.handle_register)
-        btn_box.rejected.connect(self.show_main_page)
-        layout.addWidget(btn_box, alignment=QtCore.Qt.AlignCenter)
+        btn_box.rejected.connect(clear_fields)  # Теперь очищает поля перед переходом
+        left_layout.addWidget(btn_box, alignment=QtCore.Qt.AlignCenter)
+
+        # Правая часть (1/4) - изображение
+        right_widget = QtWidgets.QLabel()
+        right_widget.setPixmap(QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
+        right_widget.setScaledContents(True)
+
+        # Распределяем пространство (3:1 соотношение)
+        main_layout.addWidget(left_widget, 3)  # 3/4 ширины
+        main_layout.addWidget(right_widget, 1)  # 1/4 ширины
 
         self.stacked_widget.addWidget(page)
 
@@ -319,7 +391,7 @@ class MainWindow(QMainWindow):
             QPushButton {
                 background-color: #4CAF50;
                 color: white;
-                font-size: 18px;
+                font-size: 26px;
                 padding: 15px;
                 min-width: 150px;
                 border-radius: 5px;
@@ -353,7 +425,7 @@ class MainWindow(QMainWindow):
             QPushButton {
                 background-color: #ff9800;
                 color: black;
-                font-size: 40px;
+                font-size: 26px;
                 padding: 15px;
                 min-width: 150px;
                 border-radius: 5px;
