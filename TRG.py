@@ -159,7 +159,7 @@ class MainWindow(QMainWindow):
         main_layout = QHBoxLayout(page)
         main_layout.setContentsMargins(0, 0, 0, 0)  # Убираем отступы
 
-        # Левая часть (2/3) - форма входа
+        # Левая часть (3/4) - форма входа
         left_widget = QtWidgets.QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setAlignment(QtCore.Qt.AlignCenter)
@@ -172,9 +172,10 @@ class MainWindow(QMainWindow):
         self.login_username = QLineEdit()
         self.login_username.setPlaceholderText("Имя пользователя")
         self.login_username.setStyleSheet("""
-            font-size: 24px; 
+            font-size: 24px;
             padding: 15px;
             min-width: 300px;
+            max-width: 800px;
         """)
         form.addRow("Имя пользователя:", self.login_username)
 
@@ -182,9 +183,10 @@ class MainWindow(QMainWindow):
         self.login_password.setPlaceholderText("Пароль")
         self.login_password.setEchoMode(QLineEdit.Password)
         self.login_password.setStyleSheet("""
-            font-size: 24px; 
+            font-size: 24px;
             padding: 15px;
             min-width: 300px;
+            max-width: 800px;
         """)
         form.addRow("Пароль:", self.login_password)
 
@@ -209,25 +211,55 @@ class MainWindow(QMainWindow):
             padding: 15px;
             min-width: 200px;
         """)
+
         def clear_fields():
             self.login_username.clear()
             self.login_password.clear()
-            self.show_main_page()
 
-        btn_box.accepted.connect(self.handle_login)
-        btn_box.rejected.connect(clear_fields)  # Теперь очищает поля перед переходом
+        # Модифицированный обработчик входа
+        def handle_login_and_clear():
+            # Проверяем заполненность полей перед обработкой
+            if not self.login_username.text() or not self.login_password.text():
+                QMessageBox.warning(page, "Ошибка", "Заполните все поля")
+                return
+
+            # Если поля заполнены, пробуем войти
+            try:
+                if self.handle_login():  # Предполагаем, что возвращает True при успехе
+                    clear_fields()  # Очищаем только после успешного входа
+            except Exception as e:
+                QMessageBox.critical(page, "Ошибка", f"Ошибка входа: {str(e)}")
+
+        # Очистка только при нажатии Отмена
+        btn_box.rejected.connect(clear_fields)
+        btn_box.rejected.connect(self.show_main_page)
+
+        # Новая логика для кнопки входа
+        btn_box.accepted.connect(handle_login_and_clear)
+
         left_layout.addWidget(btn_box, alignment=QtCore.Qt.AlignCenter)
 
-        # Правая часть (1/3) - изображение
+        # Правая часть (1/4) - изображение
         right_widget = QtWidgets.QLabel()
         right_widget.setPixmap(QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
         right_widget.setScaledContents(True)
 
-        # Распределяем пространство
-        main_layout.addWidget(left_widget, 3)  # 2/3 ширины
-        main_layout.addWidget(right_widget, 1)  # 1/3 ширины
+        # Распределяем пространство (3:1 соотношение)
+        main_layout.addWidget(left_widget, 3)  # 3/4 ширины
+        main_layout.addWidget(right_widget, 1)  # 1/4 ширины
 
+        # Сохраняем ссылку на страницу
+        self.login_page = page
         self.stacked_widget.addWidget(page)
+
+        # Перехватываем переход на главную страницу для очистки
+        original_show_main_page = self.show_main_page
+
+        def show_main_page_with_clear():
+            clear_fields()
+            original_show_main_page()
+
+        self.show_main_page = show_main_page_with_clear
 
     def create_register_page(self):
         # Создаём главный контейнер с горизонтальной компоновкой
@@ -291,10 +323,28 @@ class MainWindow(QMainWindow):
         def clear_fields():
             self.reg_username.clear()
             self.reg_password.clear()
-            self.show_main_page()
 
-        btn_box.accepted.connect(self.handle_register)
-        btn_box.rejected.connect(clear_fields)  # Теперь очищает поля перед переходом
+        # Модифицированный обработчик регистрации
+        def handle_register_and_clear():
+            # Проверяем заполненность полей перед обработкой
+            if not self.reg_username.text() or not self.reg_password.text():
+                QMessageBox.warning(page, "Ошибка", "Заполните все поля")
+                return
+
+            # Если поля заполнены, пробуем зарегистрировать
+            try:
+                if self.handle_register():  # Предполагаем, что возвращает True при успехе
+                    clear_fields()  # Очищаем только после успешной регистрации
+            except Exception as e:
+                QMessageBox.critical(page, "Ошибка", f"Ошибка регистрации: {str(e)}")
+
+        # Очистка только при нажатии Отмена
+        btn_box.rejected.connect(clear_fields)
+        btn_box.rejected.connect(self.show_main_page)
+
+        # Новая логика для кнопки регистрации
+        btn_box.accepted.connect(handle_register_and_clear)
+
         left_layout.addWidget(btn_box, alignment=QtCore.Qt.AlignCenter)
 
         # Правая часть (1/4) - изображение
@@ -306,7 +356,18 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(left_widget, 3)  # 3/4 ширины
         main_layout.addWidget(right_widget, 1)  # 1/4 ширины
 
+        # Сохраняем ссылку на страницу
+        self.register_page = page
         self.stacked_widget.addWidget(page)
+
+        # Перехватываем переход на главную страницу для очистки
+        original_show_main_page = self.show_main_page
+
+        def show_main_page_with_clear():
+            clear_fields()
+            original_show_main_page()
+
+        self.show_main_page = show_main_page_with_clear
 
     def create_profile_page(self):
         page = QtWidgets.QWidget()
@@ -331,7 +392,7 @@ class MainWindow(QMainWindow):
         self.balance_label = QLabel()
         self.balance_label.setStyleSheet("""
             color: #4CAF50;
-            font-size: 24px;
+            font-size: 34px;
         """)
         balance_layout.addWidget(self.balance_label)
 
@@ -340,8 +401,8 @@ class MainWindow(QMainWindow):
             QPushButton {
                 background-color: #2196F3;
                 color: white;
-                font-size: 18px;
-                padding: 10px 20px;
+                font-size: 26px;
+                padding: 15px;
                 border-radius: 5px;
             }
             QPushButton:hover {
@@ -350,6 +411,23 @@ class MainWindow(QMainWindow):
         """)
         self.add_balance_btn.clicked.connect(self.add_balance)
         balance_layout.addWidget(self.add_balance_btn)
+
+        # Кнопка перевода
+        self.transfer_btn = QPushButton("Перевести")
+        self.transfer_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #9C27B0;
+                color: white;
+                font-size: 26px;
+                padding: 15px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #7B1FA2;
+            }
+        """)
+        self.transfer_btn.clicked.connect(self.show_transfer_dialog)
+        balance_layout.addWidget(self.transfer_btn)
 
         layout.addLayout(balance_layout)
 
@@ -378,7 +456,6 @@ class MainWindow(QMainWindow):
                 padding: 10px;
             }
         """)
-
 
         layout.addWidget(self.assets_table)
 
@@ -471,7 +548,7 @@ class MainWindow(QMainWindow):
                 padding: 15px;
                 border: 1px solid #444;
             """)
-        self.coin_info_text.setMinimumHeight(700)  # Минимальная высота
+        self.coin_info_text.setMinimumHeight(700)
         self.coin_info_layout.addWidget(self.coin_info_text)
 
         # Добавляем панель в сплиттер
@@ -480,6 +557,163 @@ class MainWindow(QMainWindow):
 
         # Подключаем обработчик клика по названию монеты
         self.assets_table.cellClicked.connect(self.show_coin_info)
+
+    def show_transfer_dialog(self):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle("Перевод монет")
+        dialog.setFixedSize(600, 400)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(20)
+
+        # Поля формы
+        form_layout = QFormLayout()
+        form_layout.setSpacing(15)
+
+        # Выбор монеты для перевода
+        self.transfer_coin_combo = QtWidgets.QComboBox()
+        self.transfer_coin_combo.setStyleSheet("font-size: 24px; padding: 10px;")
+
+        # Заполняем комбобокс доступными монетами пользователя
+        for coin in ['TON', 'OBT', 'PLUME']:
+            if self.current_user['coins'][coin] > 0:
+                self.transfer_coin_combo.addItem(coin, coin)
+
+        if self.transfer_coin_combo.count() == 0:
+            ErrorDialog(self, "У вас нет монет для перевода!").exec_()
+            return
+
+        form_layout.addRow("Монета:", self.transfer_coin_combo)
+
+        # Получатель
+        self.transfer_recipient = QLineEdit()
+        self.transfer_recipient.setStyleSheet("font-size: 24px; padding: 10px;")
+        self.transfer_recipient.setPlaceholderText("Имя пользователя")
+        form_layout.addRow("Получатель:", self.transfer_recipient)
+
+        # Количество
+        self.transfer_amount = QLineEdit()
+        self.transfer_amount.setStyleSheet("font-size: 24px; padding: 10px;")
+        self.transfer_amount.setPlaceholderText("Количество")
+        self.transfer_amount.setValidator(QtGui.QDoubleValidator(0.01, 1000000, 2))
+        form_layout.addRow("Количество:", self.transfer_amount)
+
+        # Примечание
+        self.transfer_note = QLineEdit()
+        self.transfer_note.setStyleSheet("font-size: 24px; padding: 10px;")
+        self.transfer_note.setPlaceholderText("Примечание (необязательно)")
+        form_layout.addRow("Примечание:", self.transfer_note)
+
+        layout.addLayout(form_layout)
+
+        # Кнопки
+        btn_box = QDialogButtonBox()
+        transfer_btn = btn_box.addButton("Перевести", QDialogButtonBox.AcceptRole)
+        cancel_btn = btn_box.addButton("Отмена", QDialogButtonBox.RejectRole)
+
+        transfer_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #4CAF50;
+                color: white;
+                font-size: 24;
+                padding: 10px;
+                min-width: 150px;
+            }
+        """)
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #f44336;
+                color: white;
+                font-size: 24px;
+                padding: 10px;
+                min-width: 150px;
+            }
+        """)
+
+        btn_box.accepted.connect(lambda: self.handle_transfer(dialog))
+        btn_box.rejected.connect(dialog.reject)
+
+        layout.addWidget(btn_box)
+
+        dialog.exec_()
+
+    def handle_transfer(self, dialog):
+        coin = self.transfer_coin_combo.currentData()
+        coin_name = self.transfer_coin_combo.currentText()
+        recipient = self.transfer_recipient.text().strip()
+        amount = self.transfer_amount.text().strip()
+        note = self.transfer_note.text().strip()
+
+        if not recipient or not amount:
+            ErrorDialog(self, "Укажите получателя и сумму").exec_()
+            return
+
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                raise ValueError("Сумма должна быть положительной")
+
+            # Проверяем существование получателя
+            self.cursor.execute("SELECT id_users FROM users WHERE username = %s", (recipient,))
+            recipient_id = self.cursor.fetchone()
+
+            if not recipient_id:
+                ErrorDialog(self, "Пользователь не найден").exec_()
+                return
+
+            if recipient == self.current_user['username']:
+                ErrorDialog(self, "Нельзя переводить самому себе").exec_()
+                return
+
+            # Проверяем достаточность средств
+            if amount > self.current_user['coins'][coin]:
+                ErrorDialog(self, "Недостаточно средств").exec_()
+                return
+
+            # Выполняем перевод
+            coin_column = f"{coin.lower()}_usdt"
+
+            # Уменьшаем баланс отправителя
+            self.cursor.execute(f"""
+                UPDATE users 
+                SET {coin_column} = {coin_column} - %s 
+                WHERE id_users = %s
+            """, (amount, self.current_user['id']))
+
+            # Увеличиваем баланс получателя
+            self.cursor.execute(f"""
+                UPDATE users 
+                SET {coin_column} = {coin_column} + %s 
+                WHERE id_users = %s
+            """, (amount, recipient_id[0]))
+
+            # Записываем транзакцию в историю (если есть соответствующая таблица)
+            try:
+                self.cursor.execute("""
+                    INSERT INTO transactions 
+                    (sender_id, receiver_id, coin, amount, note, timestamp) 
+                    VALUES (%s, %s, %s, %s, %s, NOW())
+                """, (self.current_user['id'], recipient_id[0], coin, amount, note))
+            except Exception as e:
+                print(f"Не удалось записать транзакцию: {e}")
+
+            self.conn.commit()
+
+            # Обновляем данные текущего пользователя
+            self.current_user['coins'][coin] -= amount
+
+            self.update_profile()
+            dialog.close()
+
+            SuccessDialog(self, f"Вы перевели {amount} {coin_name} пользователю {recipient}").exec_()
+
+        except ValueError as e:
+            ErrorDialog(self, str(e)).exec_()
+        except Exception as e:
+            ErrorDialog(self, f"Ошибка перевода: {str(e)}").exec_()
+            self.conn.rollback()
+
+
 
     def show_coin_info(self, row, column):
         if column != 0:  # Только при клике на первый столбец (название монеты)
