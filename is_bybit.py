@@ -19,8 +19,17 @@ from sqlalchemy.exc import SQLAlchemyError
 
 API_KEY = API_KEY1
 API_SECRET = API_SECRET1
-SYMBOLS_for_bybit = ["BTCUSDT","ETHUSDT","NOTUSDT", "PLUMEUSDT", "OBTUSDT"]
-SYMBOLS = ["BTC", "ETH","NOT", "PLUME", "OBT"]
+SYMBOLS_for_bybit = ['BTCUSDT', 'ETHUSDT', 'NOTUSDT', 'PLUMEUSDT', 'OBTUSDT', 'LINKUSDT', 'OMUSDT', 'DAIUSDT',
+                     'UNIUSDT', 'PEPEUSDT', 'NEARUSDT', 'ONDOUSDT', 'MNTUSDT', 'TRUMPUSDT', 'AMIUSDT', 'SUIUSDT',
+                     'APEXUSDT', 'SUSDT', 'GRASSUSDT', 'WLDUSDT', 'ARBUSDT', 'WALUSDT', 'CAKEUSDT', 'AI16ZUSDT',
+                     'WUSDT', 'CMETHUSDT', 'POPCATUSDT', 'RENDERUSDT', 'TIAUSDT', 'WIFUSDT', 'VIRTUALUSDT',
+                     'JASMYUSDT', 'GALAUSDT', 'XTERUSDT', 'DYDXUSDT', 'ZROUSDT', 'SONICUSDT', 'INJUSDT',
+                     'PENDLEUSDT', 'LDOUSDT', 'PARTIUSDT', 'C98USDT', 'JUPUSDT', 'ORDIUSDT']
+
+SYMBOLS = ["BTC", "ETH","NOT",  "PLUME", "OBT",  "LINK", "OM",  "DAI", "UNI",
+            "PEPE",  "NEAR", "ONDO", "MNT", "TRUMP" , 'AMI', "SUI", "APEX", "S", "GRASS", "WLD", "ARB", "WAL",  "CAKE",  "AI16Z",
+           "W", "CMETH", "POPCAT", "RENDER", 'TIA', 'WIF', "VIRTUAL", "JASMY", "GALA", "XTER", "DYDX",  "ZRO",  "SONIC",
+           "INJ", "PENDLE", "LDO", "PARTI", "C98", "JUP", "ORDI"]
 INTERVAL = "60"  # 1 минута
 CATEGORY = "spot"
 INTERVALS = {
@@ -46,7 +55,7 @@ def get_historical_klines(symbol, interval, start_time, end_time):
             start=start_time * 1000,  # в миллисекунды
             end=end_time * 1000
         )
-        print(f"Response for {symbol}:", response)  # Отладка
+        print(f"Response for {symbol}:", response)
 
         if response.get("retCode") == 0:
             data = response.get("result", {}).get("list", [])
@@ -62,10 +71,22 @@ def get_historical_klines(symbol, interval, start_time, end_time):
 
 
 
-# Константы
 
-SYMBOLS = ["BTC", "ETH","NOT", "PLUME", "OBT"]
 
+SYMBOLS = ["BTC", "ETH","NOT", "PLUME", "OBT", "XRP", "BNB", "SOL", "DOGE",
+           "TRX", "ADA", "LEO", "LINK", "AVAX", "OM", "DOT", "DAI", "LTC", "UNI",
+           "OKB", "PEPE", "APT", "NEAR", "ONDO", "MNT", "ICP", "CRO", "KAS", "TRUMP"]
+
+
+SYMBOLS = ["BTC", "ETH","NOT",  "PLUME", "OBT",  "LINK", "OM",  "DAI", "UNI",
+            "PEPE",  "NEAR", "ONDO", "MNT", "TRUMP" , 'AMI', "SUI", "APEX", "S", "GRASS", "WLD", "ARB", "WAL",  "CAKE",  "AI16Z",
+           "W", "CMETH", "POPCAT", "RENDER", 'TIA', 'WIF', "VIRTUAL", "JASMY", "GALA", "XTER", "DYDX",  "ZRO",  "SONIC",
+           "INJ", "PENDLE", "LDO", "PARTI", "C98", "JUP", "ORDI"]
+
+
+
+s2 = [symbol + "USDT" for symbol in SYMBOLS]
+print(s2)
 
 def save_to_database(data, symbol):
     try:
@@ -131,8 +152,13 @@ def save_to_database(data, symbol):
         print(f"Database error for {symbol}: {str(e)}")
 
 
+import time
+
+
 def in_coinmarketcap():
     tic = []
+    last_request_time = 0  # Время последнего запроса
+
     for symbol in SYMBOLS:
         try:
             # 1. Сначала пробуем получить данные из CoinMarketCap
@@ -140,27 +166,45 @@ def in_coinmarketcap():
 
             if API_MARKET:
                 try:
+                    # когда был последний запрос
+                    current_time = time.time()
+                    if current_time - last_request_time < 10:
+                        wait_time = 10 - (current_time - last_request_time)
+                        print(f"Ожидание {wait_time:.1f} секунд перед следующим запросом...")
+                        time.sleep(wait_time)
+
                     headers = {"Accepts": "application/json", "X-CMC_PRO_API_KEY": API_MARKET}
 
-                    # Получаем информацию о токене
+                    # информацию о токене
                     info_response = requests.get(
                         "https://pro-api.coinmarketcap.com/v2/cryptocurrency/info",
                         headers=headers,
                         params={"symbol": symbol, "aux": "urls,description,logo,date_added"},
-                        timeout=10
+                        timeout=5000
                     )
                     info_response.raise_for_status()
                     info_data = info_response.json()
 
-                    # Получаем котировки
+                    # Обновляем время последнего запроса
+                    last_request_time = time.time()
+
+                    # котировки (тоже учитываем лимит)
+                    current_time = time.time()
+                    if current_time - last_request_time < 10:
+                        wait_time = 10 - (current_time - last_request_time)
+                        print(f"Ожидание {wait_time:.1f} секунд перед запросом котировок...")
+                        time.sleep(wait_time)
+
                     quotes_response = requests.get(
                         "https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest",
                         headers=headers,
                         params={"symbol": symbol, "convert": "USD"},
-                        timeout=10
+                        timeout=5000
                     )
                     quotes_response.raise_for_status()
                     quotes_data = quotes_response.json()
+
+                    last_request_time = time.time()
 
                     # Если монета найдена в CoinMarketCap
                     if symbol in info_data.get('data', {}) and symbol in quotes_data.get('data', {}):
@@ -171,7 +215,7 @@ def in_coinmarketcap():
                             coin_info['symbol'],
                             coin_info['name'],
                             coin_info.get('date_added'),
-                            # Обратите внимание, что в API v2 это date_added, а не date_launched
+
                             coin_quotes.get('platform', {}).get('name'),
                             coin_info['urls']['website'][0] if coin_info['urls']['website'] else None,
                             coin_info.get('description')
@@ -194,7 +238,7 @@ def in_coinmarketcap():
                     gecko_response = requests.get(
                         f"https://api.coingecko.com/api/v3/coins/{gecko_id}",
                         params={"localization": "false", "tickers": "false", "market_data": "false"},
-                        timeout=10
+                        timeout=5000
                     )
 
                     if gecko_response.status_code == 200:
@@ -215,7 +259,7 @@ def in_coinmarketcap():
                 except Exception as gecko_error:
                     print(f"Ошибка CoinGecko для {symbol}: {str(gecko_error)}")
 
-            # Добавляем данные в результирующий список, если они есть
+
             if coin_data:
                 tic.append(coin_data)
             else:
@@ -313,7 +357,7 @@ class CryptoDataProcessor:
                 print(f"Error fetching data for {symbol}: {resp['retMsg']}")
                 return None
 
-            # Получаем все колонки из ответа
+            #  все колонки из ответа
             columns = ['timestamp', 'open', 'high', 'low', 'close', 'volume', 'turnover']
             df = pd.DataFrame(resp['result']['list'], columns=columns)
 
@@ -403,7 +447,7 @@ class CryptoDataProcessor:
     def prepare_training_data(self, symbol, lookback=168, horizon=3):
 
         try:
-            # Проверяем существование данных
+
             with self.engine.connect() as conn:
                 exists = conn.execute(
                     text("""
@@ -460,18 +504,18 @@ class SimpleForecastModel:
         ])
         self.model.compile(optimizer='adam', loss='mse')
 
-    def train(self, X, y, epochs=30, batch_size=32):
+    def train(self, X, y, epochs=1000, batch_size=32):
         history = self.model.fit(X, y, epochs=epochs, batch_size=batch_size, validation_split=0.2)
         return history
 
 def main():
 
 
-    # 1. Сначала получаем и сохраняем информацию о токенах
+    # 1.  получаем и сохраняем информацию о токенах
     token_info = in_coinmarketcap()
     table_token(token_info)
 
-    # 2. Затем получаем и сохраняем исторические данные
+    # 2. получаем и сохраняем исторические данные
     end_time = int(datetime.now().timestamp())
     start_time = end_time - 45*86400  # 24 часа назад
 

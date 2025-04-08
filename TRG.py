@@ -6,7 +6,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QMessageBox, QDialog,
                              QTableWidgetItem, QSpinBox, QHBoxLayout)
 import psycopg2
 from config import host, user, password, db_name
-
+from PyQt5.QtChart import QChart, QChartView, QLineSeries, QDateTimeAxis, QValueAxis
+from PyQt5.QtCore import QDateTime
 
 class SuccessDialog(QMessageBox):
     def __init__(self, parent=None, text="Операция успешно завершена!"):
@@ -81,7 +82,7 @@ class MainWindow(QMainWindow):
             ErrorDialog(self, "Не удалось подключиться к базе данных!").exec_()
             sys.exit(1)
 
-        # Создаем stacked widget для страниц
+        # stacked widget для страниц
         self.stacked_widget = QtWidgets.QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
 
@@ -91,16 +92,16 @@ class MainWindow(QMainWindow):
         self.create_register_page()
         self.create_profile_page()
 
-        # Показываем главную страницу
+        # главная страница
         self.stacked_widget.setCurrentIndex(0)
 
     def create_main_page(self):
-        # Создаём главный контейнер с горизонтальной компоновкой
+        # Создаём главный контейнер
         page = QtWidgets.QWidget()
         main_layout = QHBoxLayout(page)
         main_layout.setContentsMargins(0, 0, 0, 0)  # Убираем отступы
 
-        # Левая часть (3/4) - основной контент
+        # Левая часть (3/4)
         left_widget = QtWidgets.QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setAlignment(QtCore.Qt.AlignCenter)
@@ -142,9 +143,9 @@ class MainWindow(QMainWindow):
             btn.clicked.connect(handler)
             left_layout.addWidget(btn)
 
-        # Правая часть (1/4) - изображение
+        # Правая часть (1/4)
         right_widget = QtWidgets.QLabel()
-        right_widget.setPixmap(QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
+        right_widget.setPixmap(QtGui.QPixmap("C://Users//Artem//Downloads//shap.jpg"))
         right_widget.setScaledContents(True)
 
         # Распределяем пространство (3:1 соотношение)
@@ -154,7 +155,7 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(page)
 
     def create_login_page(self):
-        # Создаем главный контейнер с горизонтальной компоновкой
+        #  главный контейнер
         page = QtWidgets.QWidget()
         main_layout = QHBoxLayout(page)
         main_layout.setContentsMargins(0, 0, 0, 0)  # Убираем отступы
@@ -216,14 +217,14 @@ class MainWindow(QMainWindow):
             self.login_username.clear()
             self.login_password.clear()
 
-        # Модифицированный обработчик входа
+        #  входа
         def handle_login_and_clear():
             # Проверяем заполненность полей перед обработкой
             if not self.login_username.text() or not self.login_password.text():
                 QMessageBox.warning(page, "Ошибка", "Заполните все поля")
                 return
 
-            # Если поля заполнены, пробуем войти
+
             try:
                 if self.handle_login():  # Предполагаем, что возвращает True при успехе
                     clear_fields()  # Очищаем только после успешного входа
@@ -241,7 +242,7 @@ class MainWindow(QMainWindow):
 
         # Правая часть (1/4) - изображение
         right_widget = QtWidgets.QLabel()
-        right_widget.setPixmap(QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
+        right_widget.setPixmap(QtGui.QPixmap("C://Users//Artem//Downloads//shap.jpg"))
         right_widget.setScaledContents(True)
 
         # Распределяем пространство (3:1 соотношение)
@@ -349,7 +350,7 @@ class MainWindow(QMainWindow):
 
         # Правая часть (1/4) - изображение
         right_widget = QtWidgets.QLabel()
-        right_widget.setPixmap(QtGui.QPixmap("C://Users//79082//OneDrive//Рабочий стол//работяга//картинки//бир3.jpg"))
+        right_widget.setPixmap(QtGui.QPixmap("C://Users//Artem//Downloads//shap.jpg"))
         right_widget.setScaledContents(True)
 
         # Распределяем пространство (3:1 соотношение)
@@ -540,6 +541,11 @@ class MainWindow(QMainWindow):
             """)
         self.coin_info_layout.addWidget(self.coin_info_label)
 
+        self.chart_view = QChartView()
+        self.chart_view.setMinimumHeight(500)
+        self.chart_view.setStyleSheet("background-color: #333;")
+        self.coin_info_layout.addWidget(self.chart_view)
+
         # Поле для отображения информации
         self.coin_info_text = QtWidgets.QTextBrowser()
         self.coin_info_text.setStyleSheet("""
@@ -575,7 +581,10 @@ class MainWindow(QMainWindow):
         self.transfer_coin_combo.setStyleSheet("font-size: 24px; padding: 10px;")
 
         # Заполняем комбобокс доступными монетами пользователя
-        for coin in ['TON', 'OBT', 'PLUME']:
+        for coin in ['BTC', 'ETH', 'OBT', 'PLUME', 'OM', 'LINK', 'DAI', 'UNI',
+                     'PEPE', 'NEAR', 'ONDO', 'MNT', 'TRUMP', 'AMI', "SUI", "APEX", "S", "GRASS", "WLD", "ARB", "WAL",  "CAKE",  "AI16Z",
+           "W", "CMETH", "POPCAT", "RENDER", 'TIA', 'WIF', "VIRTUAL", "JASMY", "GALA", "XTER", "DYDX",  "ZRO",  "SONIC",
+           "INJ", "PENDLE", "LDO", "PARTI", "C98", "JUP", "ORDI"]:
             if self.current_user['coins'][coin] > 0:
                 self.transfer_coin_combo.addItem(coin, coin)
 
@@ -723,7 +732,59 @@ class MainWindow(QMainWindow):
         coin_symbol = self.assets_table.item(row, 0).text()
 
         try:
-            # Получаем информацию о монете из all_token
+
+            self.cursor.execute("""
+                    SELECT hp.timestamp, hp.close
+                    FROM historical_prices hp
+                    JOIN all_token at ON hp.token_id = at.id
+                    WHERE at.symbol = %s
+                    ORDER BY hp.timestamp
+                    LIMIT 1000
+                """, (coin_symbol,))
+            price_data = self.cursor.fetchall()
+
+            # Создаем график
+            chart = QChart()
+            chart.setTitle(f"История цен {coin_symbol}")
+            chart.setAnimationOptions(QChart.SeriesAnimations)
+            chart.legend().hide()
+
+            # Создаем серию данных
+            series = QLineSeries()
+
+            for timestamp, price in price_data:
+                #  timestamp в миллисекунды
+                msecs = timestamp.timestamp() * 1000
+                series.append(msecs, price)
+
+            chart.addSeries(series)
+
+            #  оси
+            axisX = QDateTimeAxis()
+            axisX.setFormat("dd.MM hh:mm")
+            axisX.setTitleText("Дата")
+            chart.addAxis(axisX, QtCore.Qt.AlignBottom)
+            series.attachAxis(axisX)
+
+            axisY = QValueAxis()
+            axisY.setTitleText("Цена (USD)")
+            chart.addAxis(axisY, QtCore.Qt.AlignLeft)
+            series.attachAxis(axisY)
+
+            # стили
+            chart.setBackgroundBrush(QtGui.QBrush(QtGui.QColor("#333")))
+            chart.setTitleBrush(QtGui.QBrush(QtGui.QColor("orange")))
+
+            # график в chart_view
+            self.chart_view.setChart(chart)
+
+
+
+
+
+
+
+            #  информацию о монете из all_token
             self.cursor.execute("""
                     SELECT name, date_launched, platform, website, description 
                     FROM all_token 
@@ -737,14 +798,14 @@ class MainWindow(QMainWindow):
 
             name, date_launched, platform, website, description = coin_info
 
-            # Получаем данные о ценах и объемах за последние 10 часов
+            #  данные о ценах и объемах за последние 10 часов
             self.cursor.execute("""
                     SELECT hp.timestamp, hp.close, hp.volume
                     FROM historical_prices hp
                     JOIN all_token at ON hp.token_id = at.id
                     WHERE at.symbol = %s
                     ORDER BY hp.timestamp DESC
-                    LIMIT 2
+                    LIMIT 10
                 """, (coin_symbol,))
             price_data = self.cursor.fetchall()
 
@@ -796,6 +857,9 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             self.coin_info_text.setPlainText(f"Ошибка при получении информации: {str(e)}")
+            self.coin_info_text.setPlainText(f"Ошибка при построении графика: {str(e)}")
+
+
 
     # Навигация
     def show_main_page(self):
@@ -835,7 +899,7 @@ class MainWindow(QMainWindow):
         """)
         info.exec_()
 
-    # Обработчики
+
     def handle_login(self):
         username = self.login_username.text().strip()
         password = self.login_password.text().strip()
@@ -846,7 +910,12 @@ class MainWindow(QMainWindow):
 
         try:
             self.cursor.execute("""
-                SELECT id_users, username, balance, ton_usdt, obt_usdt, plume_usdt 
+                SELECT id_users, username, balance, 
+                btc_usdt, eth_usdt, obt_usdt, plume_usdt, om_usdt, 
+                link_usdt, dai_usdt, uni_usdt, pepe_usdt,
+                near_usdt, ondo_usdt, mnt_usdt, trump_usdt, ami_usdt, sui_usdt, apex_usdt, s_usdt, grass_usdt, wld_usdt, arb_usdt,
+                wal_usdt, cake_usdt, ai16z_usdt, w_usdt, cmeth_usdt, popcat_usdt, render_usdt, tia_usdt, wif_usdt, virtual_usdt, jasmy_usdt,
+                gala_usdt, xter_usdt, dydx_usdt, zro_usdt, sonic_usdt, inj_usdt, pendle_usdt, ldo_usdt, parti_usdt, c98_usdt, jup_usdt, ordi_usdt
                 FROM users 
                 WHERE username = %s AND password = %s
             """, (username, password))
@@ -856,16 +925,62 @@ class MainWindow(QMainWindow):
                 ErrorDialog(self, "Неверное имя пользователя или пароль!").exec_()
                 return
 
+
+
             self.current_user = {
                 'id': user[0],
                 'username': user[1],
                 'balance': float(user[2]),
                 'coins': {
-                    'TON': float(user[3]),
+                    'BTC': float(user[3]),
                     'OBT': float(user[4]),
-                    'PLUME': float(user[5])
+                    'PLUME': float(user[5]),
+                    'OM': float(user[6]),
+                    'LINK': float(user[7]),
+                    'DAI': float(user[8]),
+                    'UNI': float(user[9]),
+                    'PEPE': float(user[10]),
+                    'NEAR': float(user[11]),
+                    'ONDO': float(user[12]),
+                    'MNT': float(user[13]),
+                    'TRUMP': float(user[14]),
+                    'AMI': float(user[15]),
+                    'SUI': float(user[16]),
+                    'APEX': float(user[17]),
+                    'S': float(user[18]),
+                    'GRASS': float(user[19]),
+                    'WLD': float(user[20]),
+                    'ARB': float(user[21]),
+                    'WAL': float(user[22]),
+                    'CAKE': float(user[23]),
+                    'AI16Z': float(user[24]),
+                    'W': float(user[25]),
+                    'CMETH': float(user[26]),
+                    'POPCAT': float(user[27]),
+                    'RENDER': float(user[28]),
+                    'TIA': float(user[29]),
+                    'WIF': float(user[30]),
+                    'VIRTUAL': float(user[31]),
+                    'JASMY': float(user[32]),
+                    'GALA': float(user[33]),
+                    'XTER': float(user[34]),
+                    'DYDX': float(user[35]),
+                    'ZRO': float(user[36]),
+                    'SONIC': float(user[37]),
+                    'INJ': float(user[38]),
+                    'PENDLE': float(user[39]),
+                    'LDO': float(user[40]),
+                    'PARTI': float(user[41]),
+                    'C98': float(user[42]),
+                    'JUP': float(user[43]),
+                    'ORDI': float(user[44]),
+                    'ETH': float(user[45])
                 }
             }
+
+
+
+
 
             self.show_profile_page()
             SuccessDialog(self, "Вход выполнен успешно!").exec_()
@@ -882,7 +997,7 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            # Проверяем, существует ли пользователь
+            #  существует ли пользователь
             self.cursor.execute("SELECT id_users FROM users WHERE username = %s", (username,))
             if self.cursor.fetchone():
                 ErrorDialog(self, "Пользователь с таким именем уже существует!").exec_()
@@ -890,7 +1005,14 @@ class MainWindow(QMainWindow):
 
             # Создаем нового пользователя
             self.cursor.execute("""
-                INSERT INTO users (username, password, balance, ton_usdt, obt_usdt, plume_usdt)
+                INSERT INTO users (username, password, balance, btc_usdt, eth_usdt,
+                 obt_usdt, plume_usdt, om_usdt, link_usdt, dai_usdt,
+                  uni_usdt, pepe_usdt, near_usdt, ondo_usdt,
+                   mnt_usdt, trump_usdt, ami_usdt, sui_usdt, apex_usdt, s_usdt, 
+                   grass_usdt, wld_usdt, arb_usdt, wal_usdt, cake_usdt, ai16z_usdt,
+                    w_usdt, cmeth_usdt, popcat_usdt, render_usdt, tia_usdt, wif_usdt,
+                     virtual_usdt, jasmy_usdt, gala_usdt, xter_usdt, dydx_usdt, zro_usdt,
+                      sonic_usdt, inj_usdt, pendle_usdt, ldo_usdt, parti_usdt, c98_usdt, jup_usdt, ordi_usdt)
                 VALUES (%s, %s, 1000, 0, 0, 0)
                 RETURNING id_users
             """, (username, password))
@@ -916,13 +1038,56 @@ class MainWindow(QMainWindow):
         prices = self.get_current_prices()
 
         # Обновляем таблицу активов
-        self.assets_table.setRowCount(3)
+        self.assets_table.setRowCount(43)
 
         coins = [
-            ('TON', self.current_user['coins']['TON']),
+            ('BTC', self.current_user['coins']['BTC']),
+            ('ETH', self.current_user['coins']['ETH']),
             ('OBT', self.current_user['coins']['OBT']),
-            ('PLUME', self.current_user['coins']['PLUME'])
+            ('PLUME', self.current_user['coins']['PLUME']),
+            ('OM', self.current_user['coins']['OM']),
+            ('LINK', self.current_user['coins']['LINK']),
+            ('DAI', self.current_user['coins']['DAI']),
+            ('UNI', self.current_user['coins']['UNI']),
+            ('PEPE', self.current_user['coins']['PEPE']),
+            ('NEAR', self.current_user['coins']['NEAR']),
+            ('ONDO', self.current_user['coins']['ONDO']),
+            ('MNT', self.current_user['coins']['MNT']),
+            ('TRUMP', self.current_user['coins']['TRUMP']),
+            ('AMI', self.current_user['coins']['AMI']),
+            ('SUI', self.current_user['coins']['SUI']),
+            ('APEX', self.current_user['coins']['APEX']),
+            ('S', self.current_user['coins']['S']),
+            ('GRASS', self.current_user['coins']['GRASS']),
+            ('WLD', self.current_user['coins']['WLD']),
+            ('ARB', self.current_user['coins']['ARB']),
+            ('WAL', self.current_user['coins']['WAL']),
+            ('CAKE', self.current_user['coins']['CAKE']),
+            ('AI16Z', self.current_user['coins']['AI16Z']),
+            ('W', self.current_user['coins']['W']),
+            ('CMETH', self.current_user['coins']['CMETH']),
+            ('POPCAT', self.current_user['coins']['POPCAT']),
+            ('RENDER', self.current_user['coins']['RENDER']),
+            ('TIA', self.current_user['coins']['TIA']),
+            ('WIF', self.current_user['coins']['WIF']),
+            ('VIRTUAL', self.current_user['coins']['VIRTUAL']),
+            ('JASMY', self.current_user['coins']['JASMY']),
+            ('GALA', self.current_user['coins']['GALA']),
+            ('XTER', self.current_user['coins']['XTER']),
+            ('DYDX', self.current_user['coins']['DYDX']),
+            ('ZRO', self.current_user['coins']['ZRO']),
+            ('SONIC', self.current_user['coins']['SONIC']),
+            ('INJ', self.current_user['coins']['INJ']),
+            ('PENDLE', self.current_user['coins']['PENDLE']),
+            ('LDO', self.current_user['coins']['LDO']),
+            ('PARTI', self.current_user['coins']['PARTI']),
+            ('C98', self.current_user['coins']['C98']),
+            ('JUP', self.current_user['coins']['JUP']),
+            ('ORDI', self.current_user['coins']['ORDI'])
         ]
+
+
+
 
         for row, (coin, amount) in enumerate(coins):
             price = prices.get(coin, 0)
@@ -955,7 +1120,10 @@ class MainWindow(QMainWindow):
     def get_current_prices(self):
         prices = {}
         try:
-            for coin in ['TON', 'OBT', 'PLUME']:
+            for coin in ['BTC', 'ETH', 'OBT', 'PLUME', 'OM', 'LINK', 'DAI', 'UNI',
+                     'PEPE', 'NEAR', 'ONDO', 'MNT', 'TRUMP', 'AMI', "SUI", "APEX", "S", "GRASS", "WLD", "ARB", "WAL",  "CAKE",  "AI16Z",
+                        "W", "CMETH", "POPCAT", "RENDER", 'TIA', 'WIF', "VIRTUAL", "JASMY", "GALA", "XTER", "DYDX",  "ZRO",  "SONIC",
+                            "INJ", "PENDLE", "LDO", "PARTI", "C98", "JUP", "ORDI"]:
                 # Получаем ID токена
                 self.cursor.execute("SELECT id FROM all_token WHERE symbol = %s", (coin,))
                 token_id = self.cursor.fetchone()
@@ -995,7 +1163,10 @@ class MainWindow(QMainWindow):
         self.buy_coin_combo = QtWidgets.QComboBox()
         prices = self.get_current_prices()
 
-        for coin in ['TON', 'OBT', 'PLUME']:
+        for coin in ['BTC', 'ETH', 'OBT', 'PLUME', 'OM', 'LINK', 'DAI', 'UNI',
+                     'PEPE', 'NEAR', 'ONDO', 'MNT', 'TRUMP', 'AMI', "SUI", "APEX", "S", "GRASS", "WLD", "ARB", "WAL",  "CAKE",  "AI16Z",
+           "W", "CMETH", "POPCAT", "RENDER", 'TIA', 'WIF', "VIRTUAL", "JASMY", "GALA", "XTER", "DYDX",  "ZRO",  "SONIC",
+           "INJ", "PENDLE", "LDO", "PARTI", "C98", "JUP", "ORDI"]:
             price = prices.get(coin, 0)
             self.buy_coin_combo.addItem(f"{coin} - ${price:.4f}", coin)
 
