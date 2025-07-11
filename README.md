@@ -1,4 +1,4 @@
-# Crypto Trading Platform
+# Crypto Trading Platform - TRG
 
 <img width="3198" height="1903" alt="image" src="https://github.com/user-attachments/assets/c2477bbb-88ce-4a1c-b15d-1afceface8cd" />
 
